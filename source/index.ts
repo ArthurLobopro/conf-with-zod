@@ -1,10 +1,8 @@
-import Ajv from 'ajv'
-import ajvFormats from 'ajv-formats'
 import { EventEmitter } from 'events'
 import { jsonSchemaToZod } from "json-schema-to-zod"
 import { JSONSchema } from 'json-schema-typed'
 import { isDeepStrictEqual } from 'util'
-import { ZodObject, z, SafeParseError, SafeParseSuccess } from 'zod'
+import { SafeParseError, SafeParseSuccess, ZodObject } from 'zod'
 import { BeforeEachMigrationCallback, Deserialize, Migrations, OnDidAnyChangeCallback, OnDidChangeCallback, Options, Schema, Serialize, Unsubscribe } from './types'
 import fs = require('fs')
 import path = require('path')
@@ -98,39 +96,41 @@ class Conf<T extends Record<string, any> = Record<string, unknown>> implements I
 
 		if (options.schema) {
 
-			if (typeof options.schema !== 'object') {
-				throw new TypeError('The `schema` option must be an object.')
-			}
+			if (options.schema instanceof ZodObject) {
+				this.#validator = options.schema.safeParse
+				const defaultValues = options.schema.safeParse({})
+				if (defaultValues.success) {
+					this.#defaultValues = defaultValues.data
+				}
 
-			const ajv = new Ajv({
-				allErrors: true,
-				useDefaults: true
-			})
-			ajvFormats(ajv)
+			} else {
+				if (typeof options.schema !== 'object') {
+					throw new TypeError('The `schema` option must be an object.')
+				}
 
-			const schema: JSONSchema = {
-				type: 'object',
-				properties: options.schema
-			}
+				const schema: JSONSchema = {
+					type: 'object',
+					properties: options.schema
+				}
 
-			const zodSchema = options.schema instanceof ZodObject ? options.schema : (
-				eval(`(() => {
-					const {z} = require("zod")
-					${jsonSchemaToZod(schema as any, "schema", false)}
-					return schema
-				})()`) as ZodObject<T>
-			)
+				const zodSchema = options.schema instanceof ZodObject ? options.schema : (
+					eval(`(() => {
+						const {z} = require("zod")
+						${jsonSchemaToZod(schema as any, "schema", false)}
+						return schema
+					})()`) as ZodObject<T>
+				)
 
-			console.log(zodSchema)
-			console.log(z)
+				this.#validator = zodSchema.safeParse
 
-			this.#validator = zodSchema.safeParse
-
-			for (const [key, value] of Object.entries<JSONSchema>(options.schema)) {
-				if (value?.default) {
-					this.#defaultValues[key as keyof T] = value.default
+				for (const [key, value] of Object.entries<JSONSchema>(options.schema)) {
+					if (value?.default) {
+						this.#defaultValues[key as keyof T] = value.default
+					}
 				}
 			}
+
+			console.log(this.#defaultValues)
 		}
 
 		if (options.defaults) {
@@ -155,7 +155,7 @@ class Conf<T extends Record<string, any> = Record<string, unknown>> implements I
 		this.path = path.resolve(options.cwd, `${options.configName ?? 'config'}${fileExtension}`)
 
 		const fileStore = this.store
-		const store = Object.assign(createPlainObject(), options.defaults, fileStore)
+		const store = Object.assign(createPlainObject(), this.#defaultValues, fileStore)
 		this._validate(store)
 
 		try {
@@ -179,6 +179,8 @@ class Conf<T extends Record<string, any> = Record<string, unknown>> implements I
 
 			this._migrate(options.migrations, options.projectVersion, options.beforeEachMigration)
 		}
+
+		// this._write(this.store)
 	}
 
 	/**

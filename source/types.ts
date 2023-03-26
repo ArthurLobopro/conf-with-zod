@@ -1,7 +1,8 @@
-import {JSONSchema as TypedJSONSchema} from 'json-schema-typed';
+import { JSONSchema as TypedJSONSchema } from 'json-schema-typed'
 // eslint-disable unicorn/import-index
-import Conf from '.';
-import {EventEmitter} from 'events';
+import Conf from '.'
+import { EventEmitter } from 'events'
+import { ZodObject } from "zod"
 
 export interface Options<T extends Record<string, any>> {
 	/**
@@ -9,7 +10,7 @@ export interface Options<T extends Record<string, any>> {
 
 	**Note:** The values in `defaults` will overwrite the `default` key in the `schema` option.
 	*/
-	defaults?: Readonly<T>;
+	defaults?: Readonly<T>
 
 	/**
 	[JSON Schema](https://json-schema.org) to validate your config data.
@@ -46,7 +47,7 @@ export interface Options<T extends Record<string, any>> {
 
 	**Note:** The `default` value will be overwritten by the `defaults` option if set.
 	*/
-	schema?: Schema<T>;
+	schema?: Schema<T> | ZodObject<{ [Property in keyof T]: any }>
 
 	/**
 	Name of the config file (without extension).
@@ -55,21 +56,21 @@ export interface Options<T extends Record<string, any>> {
 
 	@default 'config'
 	*/
-	configName?: string;
+	configName?: string
 
 	/**
 	You only need to specify this if you don't have a package.json file in your project or if it doesn't have a name defined within it.
 
 	Default: The name field in the `package.json` closest to where `conf` is imported.
 	*/
-	projectName?: string;
+	projectName?: string
 
 	/**
 	You only need to specify this if you don't have a package.json file in your project or if it doesn't have a version defined within it.
 
 	Default: The name field in the `package.json` closest to where `conf` is imported.
 	*/
-	projectVersion?: string;
+	projectVersion?: string
 
 	/**
 	You can use migrations to perform operations to the store whenever a version is changed.
@@ -101,21 +102,21 @@ export interface Options<T extends Record<string, any>> {
 	});
 	```
 	*/
-	migrations?: Migrations<T>;
+	migrations?: Migrations<T>
 
 	/**
 	The given callback function will be called before each migration step.
 
 	This can be useful for logging purposes, preparing migration data, etc.
 	*/
-	beforeEachMigration?: BeforeEachMigrationCallback<T>;
+	beforeEachMigration?: BeforeEachMigrationCallback<T>
 
 	/**
 	__You most likely don't need this. Please don't use it unless you really have to.__
 
 	The only use-case I can think of is having the config located in the app directory or on some external storage. Default: System default user [config directory](https://github.com/sindresorhus/env-paths#pathsconfig).
 	*/
-	cwd?: string;
+	cwd?: string
 
 	/**
 	Note that this is __not intended for security purposes__, since the encryption key would be easily found inside a plain-text Node.js app.
@@ -126,7 +127,7 @@ export interface Options<T extends Record<string, any>> {
 
 	When specified, the store will be encrypted using the [`aes-256-cbc`](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation) encryption algorithm.
 	*/
-	encryptionKey?: string | Buffer | NodeJS.TypedArray | DataView;
+	encryptionKey?: string | Buffer | NodeJS.TypedArray | DataView
 
 	/**
 	Extension of the config file.
@@ -135,14 +136,14 @@ export interface Options<T extends Record<string, any>> {
 
 	@default 'json'
 	*/
-	fileExtension?: string;
+	fileExtension?: string
 
 	/**
 	The config is cleared if reading the config file causes a `SyntaxError`. This is a good behavior for unimportant data, as the config file is not intended to be hand-edited, so it usually means the config is corrupt and there's nothing the user can do about it anyway. However, if you let the user edit the config file directly, mistakes might happen and it could be more useful to throw an error when the config is invalid instead of clearing.
 
 	@default false
 	*/
-	clearInvalidConfig?: boolean;
+	clearInvalidConfig?: boolean
 
 	/**
 	Function to serialize the config object to a UTF-8 string when writing the config file.
@@ -151,7 +152,7 @@ export interface Options<T extends Record<string, any>> {
 
 	@default value => JSON.stringify(value, null, '\t')
 	*/
-	readonly serialize?: Serialize<T>;
+	readonly serialize?: Serialize<T>
 
 	/**
 	Function to deserialize the config object from a UTF-8 string when reading the config file.
@@ -160,7 +161,7 @@ export interface Options<T extends Record<string, any>> {
 
 	@default JSON.parse
 	*/
-	readonly deserialize?: Deserialize<T>;
+	readonly deserialize?: Deserialize<T>
 
 	/**
 	__You most likely don't need this. Please don't use it unless you really have to.__
@@ -173,7 +174,7 @@ export interface Options<T extends Record<string, any>> {
 
 	@default 'nodejs'
 	*/
-	readonly projectSuffix?: string;
+	readonly projectSuffix?: string
 
 	/**
 	Access nested properties by dot notation.
@@ -211,14 +212,14 @@ export interface Options<T extends Record<string, any>> {
 	```
 
 	*/
-	readonly accessPropertiesByDotNotation?: boolean;
+	readonly accessPropertiesByDotNotation?: boolean
 
 	/**
 	Watch for any changes in the config file and call the callback for `onDidChange` or `onDidAnyChange` if set. This is useful if there are multiple processes changing the same config file.
 
 	@default false
 	*/
-	readonly watch?: boolean;
+	readonly watch?: boolean
 
 	/**
 	The [mode](https://en.wikipedia.org/wiki/File-system_permissions#Numeric_notation) that will be used for the config file.
@@ -229,26 +230,26 @@ export interface Options<T extends Record<string, any>> {
 
 	@default 0o666
 	*/
-	readonly configFileMode?: number;
+	readonly configFileMode?: number
 }
 
-export type Migrations<T extends Record<string, any>> = Record<string, (store: Conf<T>) => void>;
+export type Migrations<T extends Record<string, any>> = Record<string, (store: Conf<T>) => void>
 
 export type BeforeEachMigrationContext = {
-	fromVersion: string;
-	toVersion: string;
-	finalVersion: string;
-	versions: string[];
-};
-export type BeforeEachMigrationCallback<T extends Record<string, any>> = (store: Conf<T>, context: BeforeEachMigrationContext) => void;
+	fromVersion: string
+	toVersion: string
+	finalVersion: string
+	versions: string[]
+}
+export type BeforeEachMigrationCallback<T extends Record<string, any>> = (store: Conf<T>, context: BeforeEachMigrationContext) => void
 
-export type Schema<T> = {[Property in keyof T]: ValueSchema};
-export type ValueSchema = TypedJSONSchema;
+export type Schema<T> = { [Property in keyof T]: ValueSchema }
+export type ValueSchema = TypedJSONSchema
 
-export type Serialize<T> = (value: T) => string;
-export type Deserialize<T> = (text: string) => T;
+export type Serialize<T> = (value: T) => string
+export type Deserialize<T> = (text: string) => T
 
-export type OnDidChangeCallback<T> = (newValue?: T, oldValue?: T) => void;
-export type OnDidAnyChangeCallback<T> = (newValue?: Readonly<T>, oldValue?: Readonly<T>) => void;
+export type OnDidChangeCallback<T> = (newValue?: T, oldValue?: T) => void
+export type OnDidAnyChangeCallback<T> = (newValue?: Readonly<T>, oldValue?: Readonly<T>) => void
 
-export type Unsubscribe = () => EventEmitter;
+export type Unsubscribe = () => EventEmitter
