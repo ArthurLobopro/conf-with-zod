@@ -1,8 +1,10 @@
-import Ajv, { ValidateFunction as AjvValidateFunction } from 'ajv'
+import Ajv from 'ajv'
 import ajvFormats from 'ajv-formats'
 import { EventEmitter } from 'events'
+import { jsonSchemaToZod } from "json-schema-to-zod"
 import { JSONSchema } from 'json-schema-typed'
 import { isDeepStrictEqual } from 'util'
+import { ZodObject, z, SafeParseError, SafeParseSuccess } from 'zod'
 import { BeforeEachMigrationCallback, Deserialize, Migrations, OnDidAnyChangeCallback, OnDidChangeCallback, Options, Schema, Serialize, Unsubscribe } from './types'
 import fs = require('fs')
 import path = require('path')
@@ -55,7 +57,7 @@ const MIGRATION_KEY = `${INTERNAL_KEY}.migrations.version`
 class Conf<T extends Record<string, any> = Record<string, unknown>> implements Iterable<[keyof T, T[keyof T]]> {
 	readonly path: string
 	readonly events: EventEmitter
-	readonly #validator?: AjvValidateFunction
+	readonly #validator?: (data: any, params?: any) => SafeParseError<any> | SafeParseSuccess<any>
 	readonly #encryptionKey?: string | Buffer | NodeJS.TypedArray | DataView
 	readonly #options: Readonly<Partial<Options<T>>>
 	readonly #defaultValues: Partial<T> = {};
@@ -95,6 +97,7 @@ class Conf<T extends Record<string, any> = Record<string, unknown>> implements I
 		this.#options = options
 
 		if (options.schema) {
+
 			if (typeof options.schema !== 'object') {
 				throw new TypeError('The `schema` option must be an object.')
 			}
@@ -110,7 +113,18 @@ class Conf<T extends Record<string, any> = Record<string, unknown>> implements I
 				properties: options.schema
 			}
 
-			this.#validator = ajv.compile(schema)
+			const zodSchema = options.schema instanceof ZodObject ? options.schema : (
+				eval(`(() => {
+					const {z} = require("zod")
+					${jsonSchemaToZod(schema as any, "schema", false)}
+					return schema
+				})()`) as ZodObject<T>
+			)
+
+			console.log(zodSchema)
+			console.log(z)
+
+			this.#validator = zodSchema.safeParse
 
 			for (const [key, value] of Object.entries<JSONSchema>(options.schema)) {
 				if (value?.default) {
@@ -434,14 +448,17 @@ class Conf<T extends Record<string, any> = Record<string, unknown>> implements I
 			return
 		}
 
-		const valid = this.#validator(data)
-		if (valid || !this.#validator.errors) {
+		const result = this.#validator(data)
+
+		console.log(result)
+
+		if (result.success) {
 			return
 		}
 
-		const errors = this.#validator.errors
-			.map(({ instancePath, message = '' }) => `\`${instancePath.slice(1)}\` ${message}`)
-		throw new Error('Config schema violation: ' + errors.join('; '))
+		throw new Error(`Config schema violation: ${result.error.issues.map(issue => {
+			return issue.message
+		})}`)
 	}
 
 	private _ensureDirectory(): void {
