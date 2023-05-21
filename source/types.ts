@@ -1,8 +1,8 @@
 import { JSONSchema as TypedJSONSchema } from 'json-schema-typed'
 // eslint-disable unicorn/import-index
-import Conf from '.'
 import { EventEmitter } from 'events'
 import { ZodObject } from "zod"
+import Conf from './index'
 
 export interface Options<T extends Record<string, any>> {
 	/**
