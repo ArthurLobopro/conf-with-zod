@@ -1,21 +1,16 @@
 {
 	"name": "conf",
-	"version": "10.1.2",
+	"version": "1.0.0",
 	"description": "Simple config handling for your app or module",
 	"license": "MIT",
-	"repository": "sindresorhus/conf",
-	"funding": "https://github.com/sponsors/sindresorhus",
-	"author": {
-		"name": "Sindre Sorhus",
-		"email": "sindresorhus@gmail.com",
-		"url": "https://sindresorhus.com"
-	},
+	"repository": "arthurlobopro/conf-with-zod",
+	"author": "Arthur Lobo",
 	"main": "dist/source",
 	"engines": {
 		"node": ">=12"
 	},
 	"scripts": {
-		"test": "xo && npm run build && nyc ava",
+		"test": "npm run build && nyc ava",
 		"build": "del-cli dist && tsc",
 		"prepack": "npm run build"
 	},
@@ -70,8 +65,7 @@
 		"p-event": "^4.2.0",
 		"tempy": "^1.0.1",
 		"tsd": "^0.14.0",
-		"typescript": "^4.4.3",
-		"xo": "^0.38.2"
+		"typescript": "^4.4.3"
 	},
 	"types": "dist/source",
 	"ava": {
@@ -84,11 +78,6 @@
 			"rewritePaths": {
 				"test/": "dist/test/"
 			}
-		}
-	},
-	"xo": {
-		"rules": {
-			"@typescript-eslint/no-implicit-any-catch": "off"
 		}
 	},
 	"nyc": {
