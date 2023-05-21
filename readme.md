@@ -24,8 +24,11 @@ const store = new Conf({
 })
 ```
 
-* Normal json-schemas already can passed as schema, but they will pass as conversion with 
+* Normal json-schemas already can passed as schema, but they will pass as conversion with `json-schema-to-zod`
 
+## Know Issues
+
+* Zod does not have support to `unique` property in arrays.
 
 ## Credits
 
