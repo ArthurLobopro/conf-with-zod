@@ -129,8 +129,6 @@ class Conf<T extends Record<string, any> = Record<string, unknown>> implements I
 					}
 				}
 			}
-
-			console.log(this.#defaultValues)
 		}
 
 		if (options.defaults) {
@@ -451,8 +449,6 @@ class Conf<T extends Record<string, any> = Record<string, unknown>> implements I
 		}
 
 		const result = this.#validator(data)
-
-		console.log(result)
 
 		if (result.success) {
 			return
