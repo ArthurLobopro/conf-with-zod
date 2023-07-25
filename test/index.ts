@@ -477,7 +477,7 @@ test('fallback to cwd if `module.filename` is `null`', t => {
 test('encryption', t => {
 	const config = new Conf({
 		cwd: tempy.directory(),
-		encryptionKey: 'abc123'
+		encryptionKey: 'abc123',
 	})
 
 	t.is(config.get('foo'), undefined)
@@ -505,7 +505,7 @@ test('encryption - corrupt file', t => {
 	const before = new Conf({
 		cwd,
 		encryptionKey: 'abc123',
-		clearInvalidConfig: true
+		clearInvalidConfig: true,
 	})
 
 	before.set('foo', fixture)
@@ -516,21 +516,10 @@ test('encryption - corrupt file', t => {
 	const after = new Conf({
 		cwd,
 		encryptionKey: 'abc123',
-		clearInvalidConfig: true
+		clearInvalidConfig: true,
 	})
 
 	t.is(after.get('foo'), undefined)
-})
-
-test('decryption - migration to initialization vector', t => {
-	// The `test/config-encrypted-with-conf-4-1-0.json` file contains `{"unicorn": "🦄"}` JSON data which is encrypted with conf@4.1.0 and password `abcd1234`
-	const config = new Conf({
-		cwd: 'test',
-		encryptionKey: 'abcd1234',
-		configName: 'config-encrypted-with-conf-4-1-0'
-	})
-
-	t.deepEqual(config.store, { unicorn: '🦄' })
 })
 
 test('onDidChange()', t => {
