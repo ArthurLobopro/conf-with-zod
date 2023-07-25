@@ -154,12 +154,21 @@ class Conf<T extends Record<string, any> = Record<string, unknown>> implements I
 
 		const fileStore = this.store
 		const store = Object.assign(createPlainObject(), this.#defaultValues, fileStore)
-		this._validate(store)
+
+		const validatedData = this._validate(store)
 
 		try {
-			assert.deepEqual(fileStore, store)
+			assert.deepStrictEqual(fileStore, store)
 		} catch {
 			this.store = store
+		}
+
+		if (validatedData) {
+			try {
+				assert.deepStrictEqual(this.store, validatedData)
+			} catch (error) {
+				this.store = validatedData
+			}
 		}
 
 		if (options.watch) {
@@ -433,7 +442,7 @@ class Conf<T extends Record<string, any> = Record<string, unknown>> implements I
 	private readonly _deserialize: Deserialize<T> = value => JSON.parse(value);
 	private readonly _serialize: Serialize<T> = value => JSON.stringify(value, undefined, '\t');
 
-	private _validate(data: T | unknown): void {
+	private _validate(data: T | unknown): void | SafeParseSuccess<T>["data"] {
 		if (!this.#validator) {
 			return
 		}
@@ -441,7 +450,7 @@ class Conf<T extends Record<string, any> = Record<string, unknown>> implements I
 		const result = this.#validator(data)
 
 		if (result.success) {
-			return
+			return result.data
 		}
 
 		throw new Error(`Config schema violation: ${result.error.issues.map(issue => {
