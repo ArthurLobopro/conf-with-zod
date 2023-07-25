@@ -154,12 +154,21 @@ class Conf<T extends Record<string, any> = Record<string, unknown>> implements I
 
 		const fileStore = this.store
 		const store = Object.assign(createPlainObject(), this.#defaultValues, fileStore)
-		this._validate(store)
+
+		const validatedData = this._validate(store)
 
 		try {
-			assert.deepEqual(fileStore, store)
+			assert.deepStrictEqual(fileStore, store)
 		} catch {
 			this.store = store
+		}
+
+		if (validatedData) {
+			try {
+				assert.deepStrictEqual(this.store, validatedData)
+			} catch (error) {
+				this.store = validatedData
+			}
 		}
 
 		if (options.watch) {
@@ -387,22 +396,12 @@ class Conf<T extends Record<string, any> = Record<string, unknown>> implements I
 			return data.toString()
 		}
 
+		// Check if an initialization vector has been used to encrypt the data.
 		try {
-			// Check if an initialization vector has been used to encrypt the data
-			if (this.#encryptionKey) {
-				try {
-					if (data.slice(16, 17).toString() === ':') {
-						const initializationVector = data.slice(0, 16)
-						const password = crypto.pbkdf2Sync(this.#encryptionKey, initializationVector.toString(), 10000, 32, 'sha512')
-						const decipher = crypto.createDecipheriv(encryptionAlgorithm, password, initializationVector)
-						data = Buffer.concat([decipher.update(Buffer.from(data.slice(17))), decipher.final()]).toString('utf8')
-					} else {
-						// TODO: Remove this in the next major version.
-						const decipher = crypto.createDecipher(encryptionAlgorithm, this.#encryptionKey)
-						data = Buffer.concat([decipher.update(Buffer.from(data)), decipher.final()]).toString('utf8')
-					}
-				} catch { }
-			}
+			const initializationVector = data.slice(0, 16)
+			const password = crypto.pbkdf2Sync(this.#encryptionKey, initializationVector.toString(), 10_000, 32, 'sha512')
+			const decipher = crypto.createDecipheriv(encryptionAlgorithm, password, initializationVector)
+			return Buffer.concat([decipher.update(Buffer.from(data.slice(17))), decipher.final()]).toString('utf8')
 		} catch { }
 
 		return data.toString()
@@ -443,7 +442,7 @@ class Conf<T extends Record<string, any> = Record<string, unknown>> implements I
 	private readonly _deserialize: Deserialize<T> = value => JSON.parse(value);
 	private readonly _serialize: Serialize<T> = value => JSON.stringify(value, undefined, '\t');
 
-	private _validate(data: T | unknown): void {
+	private _validate(data: T | unknown): void | SafeParseSuccess<T>["data"] {
 		if (!this.#validator) {
 			return
 		}
@@ -451,7 +450,7 @@ class Conf<T extends Record<string, any> = Record<string, unknown>> implements I
 		const result = this.#validator(data)
 
 		if (result.success) {
-			return
+			return result.data
 		}
 
 		throw new Error(`Config schema violation: ${result.error.issues.map(issue => {
