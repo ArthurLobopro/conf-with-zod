@@ -116,7 +116,7 @@ class Conf<T extends Record<string, any> = Record<string, unknown>> implements I
 				const zodSchema = options.schema instanceof ZodObject ? options.schema : (
 					eval(`(() => {
 						const {z} = require("zod")
-						${jsonSchemaToZod(schema as any, "schema", false)}
+						${jsonSchemaToZod(schema as any, { name: "schema", module: false })}
 						return schema
 					})()`) as ZodObject<T>
 				)
