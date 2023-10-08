@@ -47,8 +47,8 @@
 		"json-schema-typed": "^7.0.3",
 		"onetime": "^5.1.2",
 		"pkg-up": "^3.1.0",
-		"semver": "^7.3.5",
-		"zod": "^3.22.2"
+		"semver": "^7.5.4",
+		"zod": "^3.22.4"
 	},
 	"devDependencies": {
 		"@ava/typescript": "^1.1.1",
