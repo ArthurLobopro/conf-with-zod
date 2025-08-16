@@ -1,27 +1,24 @@
-import { JSONSchema as TypedJSONSchema } from 'json-schema-typed'
+import { type JSONSchema as TypedJSONSchema } from 'json-schema-typed';
 // eslint-disable unicorn/import-index
-import { EventEmitter } from 'events'
-import { ZodObject } from "zod"
-import Conf from './index'
+import { ZodObject } from "zod";
+import type Conf from './index.js';
 
-export interface Options<T extends Record<string, any>> {
+export type Options<T extends Record<string, any>> = {
 	/**
 	Config used if there are no existing config.
 
 	**Note:** The values in `defaults` will overwrite the `default` key in the `schema` option.
 	*/
-	defaults?: Readonly<T>
+	defaults?: Readonly<T>;
 
 	/**
 	[JSON Schema](https://json-schema.org) to validate your config data.
 
-	Under the hood, the JSON Schema validator [ajv](https://github.com/epoberezkin/ajv) is used to validate your config. We use [JSON Schema draft-07](https://json-schema.org/latest/json-schema-validation.html) and support all [validation keywords](https://github.com/epoberezkin/ajv/blob/master/KEYWORDS.md) and [formats](https://github.com/epoberezkin/ajv#formats).
-
-	You should define your schema as an object where each key is the name of your data's property and each value is a JSON schema used to validate that property. See more [here](https://json-schema.org/understanding-json-schema/reference/object.html#properties).
+	This will be the [`properties`](https://json-schema.org/understanding-json-schema/reference/object.html#properties) object of the JSON schema. That is, define `schema` as an object where each key is the name of your data's property and each value is a JSON schema used to validate that property.
 
 	@example
 	```
-	import Conf = require('conf');
+	import Conf from 'conf';
 
 	const schema = {
 		foo: {
@@ -36,7 +33,10 @@ export interface Options<T extends Record<string, any>> {
 		}
 	};
 
-	const config = new Conf({schema});
+	const config = new Conf({
+		projectName: 'foo',
+		schema
+	});
 
 	console.log(config.get('foo'));
 	//=> 50
@@ -47,7 +47,7 @@ export interface Options<T extends Record<string, any>> {
 
 	**Note:** The `default` value will be overwritten by the `defaults` option if set.
 	*/
-	schema?: Schema<T> | ZodObject<{ [Property in keyof T]: any }>
+	schema: ZodObject;
 
 	/**
 	Name of the config file (without extension).
@@ -56,21 +56,21 @@ export interface Options<T extends Record<string, any>> {
 
 	@default 'config'
 	*/
-	configName?: string
+	configName?: string;
 
 	/**
-	You only need to specify this if you don't have a package.json file in your project or if it doesn't have a name defined within it.
+	__Required unless you specify the `cwd` option.__
 
-	Default: The name field in the `package.json` closest to where `conf` is imported.
+	You can fetch the `name` field from package.json.
 	*/
-	projectName?: string
+	projectName?: string;
 
 	/**
-	You only need to specify this if you don't have a package.json file in your project or if it doesn't have a version defined within it.
+	__Required if you specify the `migration` option.__
 
-	Default: The name field in the `package.json` closest to where `conf` is imported.
+	You can fetch the `version` field from package.json.
 	*/
-	projectVersion?: string
+	projectVersion?: string;
 
 	/**
 	You can use migrations to perform operations to the store whenever a version is changed.
@@ -81,9 +81,11 @@ export interface Options<T extends Record<string, any>> {
 
 	@example
 	```
-	import Conf = require('conf');
+	import Conf from 'conf';
 
 	const store = new Conf({
+		projectName: 'foo',
+		projectVersion: …,
 		migrations: {
 			'0.0.1': store => {
 				store.set('debugPhase', true);
@@ -102,21 +104,21 @@ export interface Options<T extends Record<string, any>> {
 	});
 	```
 	*/
-	migrations?: Migrations<T>
+	migrations?: Migrations<T>;
 
 	/**
 	The given callback function will be called before each migration step.
 
 	This can be useful for logging purposes, preparing migration data, etc.
 	*/
-	beforeEachMigration?: BeforeEachMigrationCallback<T>
+	beforeEachMigration?: BeforeEachMigrationCallback<T>;
 
 	/**
 	__You most likely don't need this. Please don't use it unless you really have to.__
 
 	The only use-case I can think of is having the config located in the app directory or on some external storage. Default: System default user [config directory](https://github.com/sindresorhus/env-paths#pathsconfig).
 	*/
-	cwd?: string
+	cwd?: string;
 
 	/**
 	Note that this is __not intended for security purposes__, since the encryption key would be easily found inside a plain-text Node.js app.
@@ -127,7 +129,7 @@ export interface Options<T extends Record<string, any>> {
 
 	When specified, the store will be encrypted using the [`aes-256-cbc`](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation) encryption algorithm.
 	*/
-	encryptionKey?: string | Buffer | NodeJS.TypedArray | DataView
+	encryptionKey?: string | Uint8Array | NodeJS.TypedArray | DataView;
 
 	/**
 	Extension of the config file.
@@ -136,14 +138,14 @@ export interface Options<T extends Record<string, any>> {
 
 	@default 'json'
 	*/
-	fileExtension?: string
+	fileExtension?: string;
 
 	/**
 	The config is cleared if reading the config file causes a `SyntaxError`. This is a good behavior for unimportant data, as the config file is not intended to be hand-edited, so it usually means the config is corrupt and there's nothing the user can do about it anyway. However, if you let the user edit the config file directly, mistakes might happen and it could be more useful to throw an error when the config is invalid instead of clearing.
 
 	@default false
 	*/
-	clearInvalidConfig?: boolean
+	clearInvalidConfig?: boolean;
 
 	/**
 	Function to serialize the config object to a UTF-8 string when writing the config file.
@@ -152,7 +154,7 @@ export interface Options<T extends Record<string, any>> {
 
 	@default value => JSON.stringify(value, null, '\t')
 	*/
-	readonly serialize?: Serialize<T>
+	readonly serialize?: Serialize<T>;
 
 	/**
 	Function to deserialize the config object from a UTF-8 string when reading the config file.
@@ -161,7 +163,7 @@ export interface Options<T extends Record<string, any>> {
 
 	@default JSON.parse
 	*/
-	readonly deserialize?: Deserialize<T>
+	readonly deserialize?: Deserialize<T>;
 
 	/**
 	__You most likely don't need this. Please don't use it unless you really have to.__
@@ -174,7 +176,7 @@ export interface Options<T extends Record<string, any>> {
 
 	@default 'nodejs'
 	*/
-	readonly projectSuffix?: string
+	readonly projectSuffix?: string;
 
 	/**
 	Access nested properties by dot notation.
@@ -183,7 +185,7 @@ export interface Options<T extends Record<string, any>> {
 
 	@example
 	```
-	const config = new Conf();
+	const config = new Conf({projectName: 'foo'});
 
 	config.set({
 		foo: {
@@ -201,7 +203,10 @@ export interface Options<T extends Record<string, any>> {
 
 	@example
 	```
-	const config = new Conf({accessPropertiesByDotNotation: false});
+	const config = new Conf({
+		projectName: 'foo',
+		accessPropertiesByDotNotation: false
+	});
 
 	config.set({
 		`foo.bar.foobar`: '🦄'
@@ -212,14 +217,14 @@ export interface Options<T extends Record<string, any>> {
 	```
 
 	*/
-	readonly accessPropertiesByDotNotation?: boolean
+	readonly accessPropertiesByDotNotation?: boolean;
 
 	/**
 	Watch for any changes in the config file and call the callback for `onDidChange` or `onDidAnyChange` if set. This is useful if there are multiple processes changing the same config file.
 
 	@default false
 	*/
-	readonly watch?: boolean
+	readonly watch?: boolean;
 
 	/**
 	The [mode](https://en.wikipedia.org/wiki/File-system_permissions#Numeric_notation) that will be used for the config file.
@@ -230,26 +235,57 @@ export interface Options<T extends Record<string, any>> {
 
 	@default 0o666
 	*/
-	readonly configFileMode?: number
-}
+	readonly configFileMode?: number;
+};
 
-export type Migrations<T extends Record<string, any>> = Record<string, (store: Conf<T>) => void>
+export type Migrations<T extends Record<string, any>> = Record<string, (store: Conf<T>) => void>;
 
 export type BeforeEachMigrationContext = {
-	fromVersion: string
-	toVersion: string
-	finalVersion: string
-	versions: string[]
-}
-export type BeforeEachMigrationCallback<T extends Record<string, any>> = (store: Conf<T>, context: BeforeEachMigrationContext) => void
+	fromVersion: string;
+	toVersion: string;
+	finalVersion: string;
+	versions: string[];
+};
+export type BeforeEachMigrationCallback<T extends Record<string, any>> = (store: Conf<T>, context: BeforeEachMigrationContext) => void;
 
-export type Schema<T> = { [Property in keyof T]: ValueSchema }
-export type ValueSchema = TypedJSONSchema
+export type Schema<T> = { [Property in keyof T]: ValueSchema };
+export type ValueSchema = TypedJSONSchema;
 
-export type Serialize<T> = (value: T) => string
-export type Deserialize<T> = (text: string) => T
+export type Serialize<T> = (value: T) => string;
+export type Deserialize<T> = (text: string) => T;
 
-export type OnDidChangeCallback<T> = (newValue?: T, oldValue?: T) => void
-export type OnDidAnyChangeCallback<T> = (newValue?: Readonly<T>, oldValue?: Readonly<T>) => void
+export type OnDidChangeCallback<T> = (newValue?: T, oldValue?: T) => void;
+export type OnDidAnyChangeCallback<T> = (newValue?: Readonly<T>, oldValue?: Readonly<T>) => void;
 
-export type Unsubscribe = () => EventEmitter
+export type Unsubscribe = () => void;
+
+export type DotNotationKeyOf<T extends Record<string, any>> = {
+	[K in keyof Required<T>]: K extends string
+	? Required<T>[K] extends Record<string, any>
+	? K | `${K}.${DotNotationKeyOf<Required<T>[K]>}`
+	: K
+	: never
+}[keyof T];
+
+export type DotNotationValueOf<T extends Record<string, any>, K extends DotNotationKeyOf<T>> =
+	K extends `${infer Head}.${infer Tail}`
+	? Head extends keyof T
+	? T[Head] extends Record<string, any>
+	? Tail extends DotNotationKeyOf<T[Head]>
+	// Type of objects for required properties
+	? DotNotationValueOf<T[Head], Tail>
+	: never
+	: Required<T>[Head] extends Record<string, any>
+	? Tail extends DotNotationKeyOf<Required<T>[Head]>
+	// Type of objects for optional properties
+	? DotNotationValueOf<Required<T>[Head], Tail> | undefined
+	: never
+	: never
+	: never
+	: K extends keyof T
+	? T[K]
+	: never;
+
+export type PartialObjectDeep<T> = { [K in keyof T]?: PartialObjectDeep<T[K]> };
+
+

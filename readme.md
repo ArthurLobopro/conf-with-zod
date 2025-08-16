@@ -12,7 +12,7 @@ npm install conf-with-zod
 
 This package works almost identical that original `conf`, with these diferences: 
 
-* In the property schema you can pass a zod validator like this:
+* In the property schema you NEED to pass a zod object validator like this:
 
 ```typescript 
 const zodSchema = z.object({
@@ -23,12 +23,6 @@ const store = new Conf({
 	schema: zodSchema
 })
 ```
-
-* Normal json-schemas already can passed as schema, but they will pass as conversion with `json-schema-to-zod`
-
-## Know Issues
-
-* Zod does not have support to `unique` property in arrays.
 
 ## Credits
 

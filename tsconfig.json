@@ -2,14 +2,21 @@
 	"extends": "@sindresorhus/tsconfig",
 	"compilerOptions": {
 		"outDir": "dist",
-		"target": "es2018",
-		"moduleResolution": "node16",
+		"target": "es2023", // Node.js 20
 		"lib": [
-			"es2018"
-		]
+			"es2023"
+		],
+		"noPropertyAccessFromIndexSignature": false,
+		"isolatedModules": true,
+		"moduleResolution": "nodenext"
 	},
 	"include": [
 		"source",
 		"test"
-	]
+	],
+	"ts-node": {
+		"transpileOnly": true,
+		"files": true,
+		"experimentalResolver": true
+	}
 }
