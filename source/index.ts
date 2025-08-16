@@ -21,6 +21,7 @@ import {
 	uint8ArrayToString,
 } from 'uint8array-extras';
 import {
+	ZodDefault,
 	ZodObject
 } from "zod";
 import {
@@ -64,7 +65,7 @@ const MIGRATION_KEY = `${INTERNAL_KEY}.migrations.version`;
 export default class Conf<T extends Record<string, any> = Record<string, unknown>> implements Iterable<[keyof T, T[keyof T]]> {
 	readonly path: string;
 	readonly events: EventTarget;
-	readonly #validator?: ZodObject["safeParse"];
+	readonly #validator?: ZodObject["parse"];
 	readonly #encryptionKey?: string | Uint8Array | NodeJS.TypedArray | DataView;
 	readonly #options: Readonly<Partial<Options<T>>>;
 	readonly #defaultValues: Partial<T> = {};
@@ -95,12 +96,21 @@ export default class Conf<T extends Record<string, any> = Record<string, unknown
 				throw new TypeError('The `schema` option must be an ZodObject.');
 			}
 
-			this.#validator = options.schema.safeParse;
+			this.#validator = options.schema.default({}).parse;
 
-			const defaultValues = options.schema.safeParse({});
-			if (defaultValues.success) {
-				this.#defaultValues = defaultValues.data as Partial<T>;
-			}
+			try {
+				const defaultValues: Record<string, any> = {};
+				const shape = options.schema.shape;
+
+				for (const key in shape) {
+					const field = shape[key];
+					if (field instanceof ZodDefault) {
+						defaultValues[key] = field.def.defaultValue;
+					}
+				}
+
+				this.#defaultValues = defaultValues as Partial<T>;
+			} catch (error) { }
 		}
 
 		if (options.defaults) {
@@ -125,7 +135,7 @@ export default class Conf<T extends Record<string, any> = Record<string, unknown
 		this.path = path.resolve(options.cwd, `${options.configName ?? 'config'}${fileExtension}`);
 
 		const fileStore = this.store;
-		const store = Object.assign(createPlainObject(), options.defaults, fileStore);
+		const store = Object.assign(createPlainObject(), this.#defaultValues, fileStore);
 
 		if (options.migrations) {
 			if (!options.projectVersion) {
@@ -135,8 +145,10 @@ export default class Conf<T extends Record<string, any> = Record<string, unknown
 			this._migrate(options.migrations, options.projectVersion, options.beforeEachMigration);
 		}
 
-		// We defer validation until after migrations are applied so that the store can be updated to the current schema.
-		this._validate(store);
+		if (Object.keys(store).length !== 0) {
+			// We defer validation until after migrations are applied so that the store can be updated to the current schema.
+			this._validate(store, "constructor");
+		}
 
 		try {
 			assert.deepEqual(fileStore, store);
@@ -170,7 +182,16 @@ export default class Conf<T extends Record<string, any> = Record<string, unknown
 		}
 
 		const { store } = this;
-		return key in store ? store[key] : defaultValue;
+
+		if (key in store) {
+			return store[key];
+		}
+
+		console.log(`${key} not in store`);
+		console.log(store);
+
+
+		return defaultValue;
 	}
 
 	/**
@@ -341,7 +362,9 @@ export default class Conf<T extends Record<string, any> = Record<string, unknown
 			const data = fs.readFileSync(this.path, this.#encryptionKey ? null : 'utf8');
 			const dataString = this._encryptData(data);
 			const deserializedData = this._deserialize(dataString);
-			this._validate(deserializedData);
+
+			this._validate(deserializedData, "loadStore");
+
 			return Object.assign(createPlainObject(), deserializedData);
 		} catch (error: unknown) {
 			if ((error as any)?.code === 'ENOENT') {
@@ -360,7 +383,7 @@ export default class Conf<T extends Record<string, any> = Record<string, unknown
 	set store(value: T) {
 		this._ensureDirectory();
 
-		this._validate(value);
+		this._validate(value, "setStore");
 		this._write(value);
 
 		this.events.dispatchEvent(new Event('change'));
@@ -428,21 +451,17 @@ export default class Conf<T extends Record<string, any> = Record<string, unknown
 	private readonly _deserialize: Deserialize<T> = value => JSON.parse(value);
 	private readonly _serialize: Serialize<T> = value => JSON.stringify(value, undefined, '\t');
 
-	private _validate(data: T | unknown): void {
+	private _validate(data: T | unknown, from: string): void {
 		if (!this.#validator) {
 			return;
 		}
 
-		const valid = this.#validator(data);
-		if (valid.success) {
-			return;
+		try {
+			this.#validator(data);
+		} catch (error) {
+			console.error(`error from ${from}`);
+			throw error;
 		}
-		console.log(data);
-		console.log(valid);
-
-		const errors = valid.error.issues
-			.map(({ message, path }) => `\`${path}\` ${message}`);
-		throw new Error('Config schema violation: ' + errors.join('; '));
 	}
 
 	private _ensureDirectory(): void {

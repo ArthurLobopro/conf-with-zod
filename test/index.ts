@@ -724,18 +724,27 @@ test('schema - invalid write to config file', t => {
 	}, { instanceOf: ZodError });
 });
 
-test('schema - default', t => {
+test('schema - default', async t => {
 	const schema = z.object({
-		foo: z.string().default("bar")
+		bar: z.string().default("bar")
 	});
 
-	const config = new Conf<{ foo: string; }>({
+	const config = new Conf<{ bar: string; }>({
 		cwd: temporaryDirectory(),
 		schema,
+		accessPropertiesByDotNotation: false
 	});
 
-	const foo: string = config.get('foo', '');
-	t.is(foo, 'bar');
+
+	await new Promise<void>((resolve) => {
+		setTimeout(resolve, 100);
+	});
+
+	console.log("Trying to get bar");
+	const bar: string = config.get("bar", '');
+	console.log("Finish to try to get bar");
+	t.is(bar, "bar");
+
 });
 
 test('schema - Conf defaults overwrites schema default', t => {
