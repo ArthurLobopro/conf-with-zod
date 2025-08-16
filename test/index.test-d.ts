@@ -1,6 +1,8 @@
-/* eslint-disable no-new */
+/* eslint-disable no-new, @typescript-eslint/naming-convention */
+import {stringToUint8Array} from 'uint8array-extras';
 import {expectType, expectAssignable, expectError} from 'tsd';
-import Conf from '../source';
+import Conf from '../source/index.js';
+import {type DotNotationKeyOf, type DotNotationValueOf} from '../source/types.js';
 
 type UnicornFoo = {
 	foo: string;
@@ -15,14 +17,14 @@ const conf = new Conf<UnicornFoo>({accessPropertiesByDotNotation: true});
 new Conf<UnicornFoo>({
 	defaults: {
 		foo: 'bar',
-		unicorn: false
-	}
+		unicorn: false,
+	},
 });
 new Conf<UnicornFoo>({configName: ''});
 new Conf<UnicornFoo>({projectName: 'foo'});
 new Conf<UnicornFoo>({cwd: ''});
 new Conf<UnicornFoo>({encryptionKey: ''});
-new Conf<UnicornFoo>({encryptionKey: Buffer.from('')});
+new Conf<UnicornFoo>({encryptionKey: stringToUint8Array('')});
 new Conf<UnicornFoo>({encryptionKey: new Uint8Array([1])});
 new Conf<UnicornFoo>({encryptionKey: new DataView(new ArrayBuffer(2))});
 new Conf<UnicornFoo>({fileExtension: '.foo'});
@@ -37,23 +39,23 @@ new Conf<UnicornFoo>({
 	schema: {
 		foo: {
 			type: 'string',
-			default: 'foobar'
+			default: 'foobar',
 		},
 		unicorn: {
-			type: 'boolean'
+			type: 'boolean',
 		},
 		hello: {
-			type: 'number'
+			type: 'number',
 		},
 		nested: {
 			type: 'object',
 			properties: {
 				prop: {
-					type: 'number'
-				}
-			}
-		}
-	}
+					type: 'number',
+				},
+			},
+		},
+	},
 });
 
 conf.set('hello', 1);
@@ -64,33 +66,43 @@ conf.set('nested.prop', 3);
 
 conf.set({
 	nested: {
-		prop: 3
-	}
+		prop: 3,
+	},
 });
 
 expectType<string>(conf.get('foo'));
 expectType<string>(conf.get('foo', 'bar'));
+expectType<number | undefined>(conf.get('nested.prop'));
+expectType<number>(conf.get('nested.prop', 5));
 conf.delete('foo');
 expectType<boolean>(conf.has('foo'));
+conf.delete('nested.prop');
+expectType<boolean>(conf.has('nested.prop'));
 conf.clear();
-const off = conf.onDidChange('foo', (oldValue, newValue) => {
-	expectAssignable<UnicornFoo[keyof UnicornFoo]>(oldValue);
+const off = conf.onDidChange('foo', (newValue, oldValue) => {
 	expectAssignable<UnicornFoo[keyof UnicornFoo]>(newValue);
+	expectAssignable<UnicornFoo[keyof UnicornFoo]>(oldValue);
 });
 
 expectType<() => void>(off);
 off();
 
+const offForNestedProp = conf.onDidChange('nested.prop', (newValue, oldValue) => {
+	expectAssignable<DotNotationValueOf<UnicornFoo, DotNotationKeyOf<UnicornFoo>>>(newValue);
+	expectAssignable<DotNotationValueOf<UnicornFoo, DotNotationKeyOf<UnicornFoo>>>(oldValue);
+});
+
+expectType<() => void>(offForNestedProp);
+offForNestedProp();
+
 conf.store = {
 	foo: 'bar',
-	unicorn: false
+	unicorn: false,
 };
 expectType<string>(conf.path);
 expectType<number>(conf.size);
 
-expectType<IterableIterator<[keyof UnicornFoo, UnicornFoo[keyof UnicornFoo]]>>(
-	conf[Symbol.iterator]()
-);
+expectType<IterableIterator<[keyof UnicornFoo, UnicornFoo[keyof UnicornFoo]]>>(conf[Symbol.iterator]());
 for (const [key, value] of conf) {
 	expectType<keyof UnicornFoo>(key);
 	expectType<UnicornFoo[keyof UnicornFoo]>(value);
@@ -105,8 +117,8 @@ type StoreType = {
 
 const config = new Conf<StoreType>({
 	defaults: {
-		isRainbow: true
-	}
+		isRainbow: true,
+	},
 });
 
 config.get('isRainbow');
@@ -135,22 +147,22 @@ expectError<number>(config.get('unicorn', 1));
 
 // -- Migrations --
 new Conf({
-	beforeEachMigration: (store, context) => {
+	beforeEachMigration(store, context) {
 		console.log(`[main-config] migrate from ${context.fromVersion} → ${context.toVersion}`);
 		console.log(`[main-config] final migration version ${context.finalVersion}, all migrations that were run or will be ran: ${context.versions.toString()}`);
-		console.log(`[main-config] phase ${(store.get('phase') || 'none') as string}`);
+		console.log(`[main-config] phase ${(store.get('phase') ?? 'none') as string}`);
 	},
 	migrations: {
-		'0.0.1': store => {
+		'0.0.1'(store) {
 			store.set('debug phase', true);
 		},
-		'1.0.0': store => {
+		'1.0.0'(store) {
 			store.delete('debug phase');
 			store.set('phase', '1.0');
 		},
-		'1.0.2': store => {
+		'1.0.2'(store) {
 			store.set('phase', '>1.0');
-		}
-	}
+		},
+	},
 });
 // --
