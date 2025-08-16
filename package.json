@@ -1,15 +1,9 @@
 {
-	"name": "conf",
-	"version": "14.0.0",
+	"name": "conf-with-zod",
+	"version": "2.0.0",
 	"description": "Simple config handling for your app or module",
 	"license": "MIT",
-	"repository": "sindresorhus/conf",
-	"funding": "https://github.com/sponsors/sindresorhus",
-	"author": {
-		"name": "Sindre Sorhus",
-		"email": "sindresorhus@gmail.com",
-		"url": "https://sindresorhus.com"
-	},
+	"author": "Arthur Lobo",
 	"type": "module",
 	"exports": {
 		"types": "./dist/source/index.d.ts",
