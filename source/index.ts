@@ -1,44 +1,42 @@
 /* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-unsafe-return */
-import {isDeepStrictEqual} from 'node:util';
-import process from 'node:process';
-import fs from 'node:fs';
-import path from 'node:path';
-import crypto from 'node:crypto';
-import assert from 'node:assert';
+import { writeFileSync as atomicWriteFileSync } from 'atomically';
+import debounceFn from 'debounce-fn';
 import {
+	deleteProperty,
 	getProperty,
 	hasProperty,
 	setProperty,
-	deleteProperty,
 } from 'dot-prop';
 import envPaths from 'env-paths';
-import {writeFileSync as atomicWriteFileSync} from 'atomically';
-import {Ajv2020 as Ajv, type ValidateFunction as AjvValidateFunction} from 'ajv/dist/2020.js';
-import ajvFormatsModule from 'ajv-formats';
-import debounceFn from 'debounce-fn';
+import assert from 'node:assert';
+import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+import process from 'node:process';
+import { isDeepStrictEqual } from 'node:util';
 import semver from 'semver';
-import {type JSONSchema} from 'json-schema-typed';
 import {
 	concatUint8Arrays,
 	stringToUint8Array,
 	uint8ArrayToString,
 } from 'uint8array-extras';
 import {
-	type Deserialize,
-	type Migrations,
-	type OnDidChangeCallback,
-	type Options,
-	type Serialize,
-	type Unsubscribe,
-	type OnDidAnyChangeCallback,
+	ZodObject
+} from "zod";
+import {
 	type BeforeEachMigrationCallback,
+	type Deserialize,
 	type DotNotationKeyOf,
 	type DotNotationValueOf,
+	type Migrations,
+	type OnDidAnyChangeCallback,
+	type OnDidChangeCallback,
+	type Options,
 	type PartialObjectDeep,
+	type Serialize,
+	type Unsubscribe,
 } from './types.js';
 
-// FIXME: https://github.com/ajv-validator/ajv/issues/2047
-const ajvFormats = ajvFormatsModule.default;
 
 const encryptionAlgorithm = 'aes-256-cbc';
 
@@ -66,7 +64,7 @@ const MIGRATION_KEY = `${INTERNAL_KEY}.migrations.version`;
 export default class Conf<T extends Record<string, any> = Record<string, unknown>> implements Iterable<[keyof T, T[keyof T]]> {
 	readonly path: string;
 	readonly events: EventTarget;
-	readonly #validator?: AjvValidateFunction;
+	readonly #validator?: ZodObject["safeParse"];
 	readonly #encryptionKey?: string | Uint8Array | NodeJS.TypedArray | DataView;
 	readonly #options: Readonly<Partial<Options<T>>>;
 	readonly #defaultValues: Partial<T> = {};
@@ -87,35 +85,21 @@ export default class Conf<T extends Record<string, any> = Record<string, unknown
 				throw new Error('Please specify the `projectName` option.');
 			}
 
-			options.cwd = envPaths(options.projectName, {suffix: options.projectSuffix}).config;
+			options.cwd = envPaths(options.projectName, { suffix: options.projectSuffix }).config;
 		}
 
 		this.#options = options;
 
-		if (options.schema ?? options.ajvOptions ?? options.rootSchema) {
-			if (options.schema && typeof options.schema !== 'object') {
-				throw new TypeError('The `schema` option must be an object.');
+		if (options.schema) {
+			if (!(options.schema instanceof ZodObject)) {
+				throw new TypeError('The `schema` option must be an ZodObject.');
 			}
 
-			const ajv = new Ajv({
-				allErrors: true,
-				useDefaults: true,
-				...options.ajvOptions,
-			});
-			ajvFormats(ajv);
+			this.#validator = options.schema.safeParse;
 
-			const schema: JSONSchema = {
-				...options.rootSchema,
-				type: 'object',
-				properties: options.schema,
-			};
-
-			this.#validator = ajv.compile(schema);
-
-			for (const [key, value] of Object.entries(options.schema ?? {}) as any) { // TODO: Remove the `as any`.
-				if (value?.default) {
-					this.#defaultValues[key as keyof T] = value.default; // eslint-disable-line @typescript-eslint/no-unsafe-assignment
-				}
+			const defaultValues = options.schema.safeParse({});
+			if (defaultValues.success) {
+				this.#defaultValues = defaultValues.data as Partial<T>;
 			}
 		}
 
@@ -185,7 +169,7 @@ export default class Conf<T extends Record<string, any> = Record<string, unknown
 			return this._get(key, defaultValue);
 		}
 
-		const {store} = this;
+		const { store } = this;
 		return key in store ? store[key] : defaultValue;
 	}
 
@@ -212,7 +196,7 @@ export default class Conf<T extends Record<string, any> = Record<string, unknown
 			throw new TypeError(`Please don't use the ${INTERNAL_KEY} key, as it's used to manage this module internal operations.`);
 		}
 
-		const {store} = this;
+		const { store } = this;
 
 		const set = (key: string, value?: T[Key] | T | unknown): void => {
 			checkValueType(key, value);
@@ -273,7 +257,7 @@ export default class Conf<T extends Record<string, any> = Record<string, unknown
 	delete<Key extends keyof T>(key: Key): void;
 	delete<Key extends DotNotationKeyOf<T>>(key: Key): void;
 	delete(key: string): void {
-		const {store} = this;
+		const { store } = this;
 		if (this.#options.accessPropertiesByDotNotation) {
 			deleteProperty(store, key);
 		} else {
@@ -382,7 +366,7 @@ export default class Conf<T extends Record<string, any> = Record<string, unknown
 		this.events.dispatchEvent(new Event('change'));
 	}
 
-	* [Symbol.iterator](): IterableIterator<[keyof T, T[keyof T]]> {
+	*[Symbol.iterator](): IterableIterator<[keyof T, T[keyof T]]> {
 		for (const [key, value] of Object.entries(this.store)) {
 			yield [key, value];
 		}
@@ -401,7 +385,7 @@ export default class Conf<T extends Record<string, any> = Record<string, unknown
 			const slice = data.slice(17);
 			const dataUpdate = typeof slice === 'string' ? stringToUint8Array(slice) : slice;
 			return uint8ArrayToString(concatUint8Arrays([decipher.update(dataUpdate), decipher.final()]));
-		} catch {}
+		} catch { }
 
 		return data.toString();
 	}
@@ -450,18 +434,20 @@ export default class Conf<T extends Record<string, any> = Record<string, unknown
 		}
 
 		const valid = this.#validator(data);
-		if (valid || !this.#validator.errors) {
+		if (valid.success) {
 			return;
 		}
+		console.log(data);
+		console.log(valid);
 
-		const errors = this.#validator.errors
-			.map(({instancePath, message = ''}) => `\`${instancePath.slice(1)}\` ${message}`);
+		const errors = valid.error.issues
+			.map(({ message, path }) => `\`${path}\` ${message}`);
 		throw new Error('Config schema violation: ' + errors.join('; '));
 	}
 
 	private _ensureDirectory(): void {
 		// Ensure the directory exists as it could have been deleted in the meantime.
-		fs.mkdirSync(path.dirname(this.path), {recursive: true});
+		fs.mkdirSync(path.dirname(this.path), { recursive: true });
 	}
 
 	private _write(value: T): void {
@@ -477,16 +463,16 @@ export default class Conf<T extends Record<string, any> = Record<string, unknown
 		// Temporary workaround for Conf being packaged in a Ubuntu Snap app.
 		// See https://github.com/sindresorhus/conf/pull/82
 		if (process.env.SNAP) {
-			fs.writeFileSync(this.path, data, {mode: this.#options.configFileMode});
+			fs.writeFileSync(this.path, data, { mode: this.#options.configFileMode });
 		} else {
 			try {
-				atomicWriteFileSync(this.path, data, {mode: this.#options.configFileMode});
+				atomicWriteFileSync(this.path, data, { mode: this.#options.configFileMode });
 			} catch (error: unknown) {
 				// Fix for https://github.com/sindresorhus/electron-store/issues/106
 				// Sometimes on Windows, we will get an EXDEV error when atomic writing
 				// (even though to the same directory), so we fall back to non atomic write
 				if ((error as any)?.code === 'EXDEV') {
-					fs.writeFileSync(this.path, data, {mode: this.#options.configFileMode});
+					fs.writeFileSync(this.path, data, { mode: this.#options.configFileMode });
 					return;
 				}
 
@@ -503,14 +489,14 @@ export default class Conf<T extends Record<string, any> = Record<string, unknown
 		}
 
 		if (process.platform === 'win32') {
-			fs.watch(this.path, {persistent: false}, debounceFn(() => {
-			// On Linux and Windows, writing to the config file emits a `rename` event, so we skip checking the event type.
+			fs.watch(this.path, { persistent: false }, debounceFn(() => {
+				// On Linux and Windows, writing to the config file emits a `rename` event, so we skip checking the event type.
 				this.events.dispatchEvent(new Event('change'));
-			}, {wait: 100}));
+			}, { wait: 100 }));
 		} else {
-			fs.watchFile(this.path, {persistent: false}, debounceFn(() => {
+			fs.watchFile(this.path, { persistent: false }, debounceFn(() => {
 				this.events.dispatchEvent(new Event('change'));
-			}, {wait: 5000}));
+			}, { wait: 5000 }));
 		}
 	}
 
@@ -520,7 +506,7 @@ export default class Conf<T extends Record<string, any> = Record<string, unknown
 		const newerVersions = Object.keys(migrations)
 			.filter(candidateVersion => this._shouldPerformMigration(candidateVersion, previousMigratedVersion, versionToMigrate));
 
-		let storeBackup = {...this.store};
+		let storeBackup = { ...this.store };
 
 		for (const version of newerVersions) {
 			try {
@@ -539,7 +525,7 @@ export default class Conf<T extends Record<string, any> = Record<string, unknown
 				this._set(MIGRATION_KEY, version);
 
 				previousMigratedVersion = version;
-				storeBackup = {...this.store};
+				storeBackup = { ...this.store };
 			} catch (error: unknown) {
 				this.store = storeBackup;
 
@@ -607,11 +593,12 @@ export default class Conf<T extends Record<string, any> = Record<string, unknown
 	}
 
 	private _set(key: string, value: unknown): void {
-		const {store} = this;
+		const { store } = this;
 		setProperty(store, key, value);
 
 		this.store = store;
 	}
 }
 
-export type {Options, Schema} from './types.js';
+export type { Options, Schema } from './types.js';
+

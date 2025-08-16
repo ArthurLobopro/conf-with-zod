@@ -1,6 +1,6 @@
-import {type JSONSchema as TypedJSONSchema} from 'json-schema-typed';
+import { type JSONSchema as TypedJSONSchema } from 'json-schema-typed';
 // eslint-disable unicorn/import-index
-import type {CurrentOptions as AjvOptions} from 'ajv/dist/core.js';
+import { ZodObject } from "zod";
 import type Conf from './index.js';
 
 export type Options<T extends Record<string, any>> = {
@@ -47,50 +47,7 @@ export type Options<T extends Record<string, any>> = {
 
 	**Note:** The `default` value will be overwritten by the `defaults` option if set.
 	*/
-	schema?: Schema<T>;
-
-	/**
-	Top-level properties for the schema, excluding `properties` field.
-
-	@example
-	```
-	import Conf from 'conf';
-
-	const store = new Conf({
-		projectName: 'foo',
-		schema: {},
-		rootSchema: {
-			additionalProperties: false
-		}
-	});
-	```
-	*/
-	rootSchema?: Omit<TypedJSONSchema, 'properties'>;
-
-	/**
-	[Options passed to AJV](https://ajv.js.org/options.html).
-
-	Under the hood, the JSON Schema validator [ajv](https://ajv.js.org/json-schema.html) is used to validate your config. We use [JSON Schema draft-2020-12](https://json-schema.org/draft/2020-12/release-notes) and support all validation keywords and formats.
-
-	**Note:** By default, `allErrors` and `useDefaults` are both set to `true`, but can be overridden.
-
-	@example
-	```
-	import Conf from 'conf';
-
-	const store = new Conf({
-		projectName: 'foo',
-		schema: {},
-		rootSchema: {
-			additionalProperties: false
-		},
-		ajvOptions: {
-			removeAdditional: true
-		}
-	});
-	```
-	*/
-	ajvOptions?: AjvOptions;
+	schema: ZodObject;
 
 	/**
 	Name of the config file (without extension).
@@ -291,7 +248,7 @@ export type BeforeEachMigrationContext = {
 };
 export type BeforeEachMigrationCallback<T extends Record<string, any>> = (store: Conf<T>, context: BeforeEachMigrationContext) => void;
 
-export type Schema<T> = {[Property in keyof T]: ValueSchema};
+export type Schema<T> = { [Property in keyof T]: ValueSchema };
 export type ValueSchema = TypedJSONSchema;
 
 export type Serialize<T> = (value: T) => string;
@@ -304,31 +261,31 @@ export type Unsubscribe = () => void;
 
 export type DotNotationKeyOf<T extends Record<string, any>> = {
 	[K in keyof Required<T>]: K extends string
-		? Required<T>[K] extends Record<string, any>
-			? K | `${K}.${DotNotationKeyOf<Required<T>[K]>}`
-			: K
-		: never
+	? Required<T>[K] extends Record<string, any>
+	? K | `${K}.${DotNotationKeyOf<Required<T>[K]>}`
+	: K
+	: never
 }[keyof T];
 
 export type DotNotationValueOf<T extends Record<string, any>, K extends DotNotationKeyOf<T>> =
 	K extends `${infer Head}.${infer Tail}`
-		? Head extends keyof T
-			? T[Head] extends Record<string, any>
-				? Tail extends DotNotationKeyOf<T[Head]>
-					// Type of objects for required properties
-					? DotNotationValueOf<T[Head], Tail>
-					: never
-				: Required<T>[Head] extends Record<string, any>
-					? Tail extends DotNotationKeyOf<Required<T>[Head]>
-						// Type of objects for optional properties
-						? DotNotationValueOf<Required<T>[Head], Tail> | undefined
-						: never
-					: never
-			: never
-		: K extends keyof T
-			? T[K]
-			: never;
+	? Head extends keyof T
+	? T[Head] extends Record<string, any>
+	? Tail extends DotNotationKeyOf<T[Head]>
+	// Type of objects for required properties
+	? DotNotationValueOf<T[Head], Tail>
+	: never
+	: Required<T>[Head] extends Record<string, any>
+	? Tail extends DotNotationKeyOf<Required<T>[Head]>
+	// Type of objects for optional properties
+	? DotNotationValueOf<Required<T>[Head], Tail> | undefined
+	: never
+	: never
+	: never
+	: K extends keyof T
+	? T[K]
+	: never;
 
-export type PartialObjectDeep<T> = {[K in keyof T]?: PartialObjectDeep<T[K]>};
+export type PartialObjectDeep<T> = { [K in keyof T]?: PartialObjectDeep<T[K]> };
 
-export type {CurrentOptions as AjvOptions} from 'ajv/dist/core.js';
+

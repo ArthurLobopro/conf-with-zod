@@ -7,7 +7,8 @@
 			"es2023"
 		],
 		"noPropertyAccessFromIndexSignature": false,
-		"isolatedModules": true
+		"isolatedModules": true,
+		"moduleResolution": "nodenext"
 	},
 	"include": [
 		"source",

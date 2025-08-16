@@ -1,8 +1,9 @@
 /* eslint-disable no-new, @typescript-eslint/naming-convention */
-import {stringToUint8Array} from 'uint8array-extras';
-import {expectType, expectAssignable, expectError} from 'tsd';
+import { expectAssignable, expectError, expectType } from 'tsd';
+import { stringToUint8Array } from 'uint8array-extras';
+import z from "zod";
 import Conf from '../source/index.js';
-import {type DotNotationKeyOf, type DotNotationValueOf} from '../source/types.js';
+import { type DotNotationKeyOf, type DotNotationValueOf } from '../source/types.js';
 
 type UnicornFoo = {
 	foo: string;
@@ -13,54 +14,42 @@ type UnicornFoo = {
 	hello?: number;
 };
 
-const conf = new Conf<UnicornFoo>({accessPropertiesByDotNotation: true});
+const conf = new Conf<UnicornFoo>({ accessPropertiesByDotNotation: true });
 new Conf<UnicornFoo>({
 	defaults: {
 		foo: 'bar',
 		unicorn: false,
 	},
 });
-new Conf<UnicornFoo>({configName: ''});
-new Conf<UnicornFoo>({projectName: 'foo'});
-new Conf<UnicornFoo>({cwd: ''});
-new Conf<UnicornFoo>({encryptionKey: ''});
-new Conf<UnicornFoo>({encryptionKey: stringToUint8Array('')});
-new Conf<UnicornFoo>({encryptionKey: new Uint8Array([1])});
-new Conf<UnicornFoo>({encryptionKey: new DataView(new ArrayBuffer(2))});
-new Conf<UnicornFoo>({fileExtension: '.foo'});
-new Conf<UnicornFoo>({configFileMode: 0o600});
-new Conf<UnicornFoo>({clearInvalidConfig: false});
-new Conf<UnicornFoo>({serialize: () => 'foo'});
-new Conf<UnicornFoo>({deserialize: () => ({foo: 'foo', unicorn: true})});
-new Conf<UnicornFoo>({projectSuffix: 'foo'});
-new Conf<UnicornFoo>({watch: true});
+new Conf<UnicornFoo>({ configName: '' });
+new Conf<UnicornFoo>({ projectName: 'foo' });
+new Conf<UnicornFoo>({ cwd: '' });
+new Conf<UnicornFoo>({ encryptionKey: '' });
+new Conf<UnicornFoo>({ encryptionKey: stringToUint8Array('') });
+new Conf<UnicornFoo>({ encryptionKey: new Uint8Array([1]) });
+new Conf<UnicornFoo>({ encryptionKey: new DataView(new ArrayBuffer(2)) });
+new Conf<UnicornFoo>({ fileExtension: '.foo' });
+new Conf<UnicornFoo>({ configFileMode: 0o600 });
+new Conf<UnicornFoo>({ clearInvalidConfig: false });
+new Conf<UnicornFoo>({ serialize: () => 'foo' });
+new Conf<UnicornFoo>({ deserialize: () => ({ foo: 'foo', unicorn: true }) });
+new Conf<UnicornFoo>({ projectSuffix: 'foo' });
+new Conf<UnicornFoo>({ watch: true });
 
 new Conf<UnicornFoo>({
-	schema: {
-		foo: {
-			type: 'string',
-			default: 'foobar',
-		},
-		unicorn: {
-			type: 'boolean',
-		},
-		hello: {
-			type: 'number',
-		},
-		nested: {
-			type: 'object',
-			properties: {
-				prop: {
-					type: 'number',
-				},
-			},
-		},
-	},
+	schema: z.object({
+		foo: z.string().default("foobar"),
+		unicorn: z.boolean(),
+		hello: z.number(),
+		nested: z.object({
+			prop: z.number()
+		})
+	})
 });
 
 conf.set('hello', 1);
 conf.set('unicorn', false);
-conf.set({foo: 'nope'});
+conf.set({ foo: 'nope' });
 
 conf.set('nested.prop', 3);
 
