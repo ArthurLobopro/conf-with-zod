@@ -41,8 +41,6 @@
 		"cache"
 	],
 	"dependencies": {
-		"ajv": "^8.17.1",
-		"ajv-formats": "^3.0.1",
 		"atomically": "^2.0.3",
 		"debounce-fn": "^6.0.0",
 		"dot-prop": "^9.0.0",
