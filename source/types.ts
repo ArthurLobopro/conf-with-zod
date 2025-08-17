@@ -1,5 +1,3 @@
-import { type JSONSchema as TypedJSONSchema } from 'json-schema-typed';
-// eslint-disable unicorn/import-index
 import { ZodObject } from "zod";
 import type Conf from './index.js';
 
@@ -248,8 +246,6 @@ export type BeforeEachMigrationContext = {
 };
 export type BeforeEachMigrationCallback<T extends Record<string, any>> = (store: Conf<T>, context: BeforeEachMigrationContext) => void;
 
-export type Schema<T> = { [Property in keyof T]: ValueSchema };
-export type ValueSchema = TypedJSONSchema;
 
 export type Serialize<T> = (value: T) => string;
 export type Deserialize<T> = (text: string) => T;

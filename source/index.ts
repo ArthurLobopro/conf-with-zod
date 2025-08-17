@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-unsafe-return */
 import { writeFileSync as atomicWriteFileSync } from 'atomically';
 import debounceFn from 'debounce-fn';
 import {
@@ -169,14 +168,14 @@ export default class Conf<T extends Record<string, any> = Record<string, unknown
 
 	Tip: To get all items, see `.store`.
 	*/
-	get<Key extends keyof T>(key: Key): T[Key];
-	get<Key extends keyof T>(key: Key, defaultValue: Required<T>[Key]): Required<T>[Key];
-	get<Key extends DotNotationKeyOf<T>>(key: Key): DotNotationValueOf<T, Key>;
-	get<Key extends DotNotationKeyOf<T>>(key: Key, defaultValue: NonNullable<DotNotationValueOf<T, Key>>): NonNullable<DotNotationValueOf<T, Key>>;
+	public get<Key extends keyof T>(key: Key): T[Key];
+	public get<Key extends keyof T>(key: Key, defaultValue: Required<T>[Key]): Required<T>[Key];
+	public get<Key extends DotNotationKeyOf<T>>(key: Key): DotNotationValueOf<T, Key>;
+	public get<Key extends DotNotationKeyOf<T>>(key: Key, defaultValue: NonNullable<DotNotationValueOf<T, Key>>): NonNullable<DotNotationValueOf<T, Key>>;
 	// This overload is used for dot-notation access.
 	// We exclude `keyof T` and `DotNotationKeyOf<T>` as an incorrect type for the default value should not fall through to this overload.
-	get<Key extends string, Value = unknown>(key: Exclude<Key, DotNotationKeyOf<T>>, defaultValue?: Value): Value;
-	get(key: string, defaultValue?: unknown): unknown {
+	public get<Key extends string, Value = unknown>(key: Exclude<Key, DotNotationKeyOf<T>>, defaultValue?: Value): Value;
+	public get(key: string, defaultValue?: unknown): unknown {
 		if (this.#options.accessPropertiesByDotNotation) {
 			return this._get(key, defaultValue);
 		}
@@ -200,11 +199,11 @@ export default class Conf<T extends Record<string, any> = Record<string, unknown
 	@param {key|object} - You can use [dot-notation](https://github.com/sindresorhus/dot-prop) in a key to access nested properties. Or a hashmap of items to set at once.
 	@param value - Must be JSON serializable. Trying to set the type `undefined`, `function`, or `symbol` will result in a `TypeError`.
 	*/
-	set<Key extends keyof T>(key: Key, value?: T[Key]): void;
-	set<Key extends DotNotationKeyOf<T>>(key: Key, Value?: DotNotationValueOf<T, Key>): void;
-	set(key: string, value: unknown): void;
-	set(object: PartialObjectDeep<T>): void;
-	set<Key extends keyof T>(key: PartialObjectDeep<T> | string, value?: unknown): void {
+	public set<Key extends keyof T>(key: Key, value?: T[Key]): void;
+	public set<Key extends DotNotationKeyOf<T>>(key: Key, Value?: DotNotationValueOf<T, Key>): void;
+	public set(key: string, value: unknown): void;
+	public set(object: PartialObjectDeep<T>): void;
+	public set<Key extends keyof T>(key: PartialObjectDeep<T> | string, value?: unknown): void {
 		if (typeof key !== 'string' && typeof key !== 'object') {
 			throw new TypeError(`Expected \`key\` to be of type \`string\` or \`object\`, got ${typeof key}`);
 		}
@@ -245,9 +244,9 @@ export default class Conf<T extends Record<string, any> = Record<string, unknown
 
 	@param key - The key of the item to check.
 	*/
-	has<Key extends keyof T>(key: Key): boolean;
-	has<Key extends DotNotationKeyOf<T>>(key: Key): boolean;
-	has(key: string): boolean {
+	public has<Key extends keyof T>(key: Key): boolean;
+	public has<Key extends DotNotationKeyOf<T>>(key: Key): boolean;
+	public has(key: string): boolean {
 		if (this.#options.accessPropertiesByDotNotation) {
 			return hasProperty(this.store, key);
 		}
@@ -619,5 +618,5 @@ export default class Conf<T extends Record<string, any> = Record<string, unknown
 	}
 }
 
-export type { Options, Schema } from './types.js';
+export type { Options } from './types.js';
 
