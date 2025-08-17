@@ -1,13 +1,4 @@
 /* eslint-disable @typescript-eslint/naming-convention, @typescript-eslint/no-unsafe-return */
-import { writeFileSync as atomicWriteFileSync } from 'atomically';
-import debounceFn from 'debounce-fn';
-import {
-	deleteProperty,
-	getProperty,
-	hasProperty,
-	setProperty,
-} from 'dot-prop';
-import envPaths from 'env-paths';
 import assert from 'node:assert';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -16,14 +7,23 @@ import process from 'node:process';
 import { isDeepStrictEqual } from 'node:util';
 import semver from 'semver';
 import {
-	concatUint8Arrays,
-	stringToUint8Array,
-	uint8ArrayToString,
-} from 'uint8array-extras';
-import {
 	ZodDefault,
 	ZodObject
 } from "zod";
+import { writeFileSync as atomicWriteFileSync } from '../lib/atomically';
+import debounceFn from '../lib/debounce-fn';
+import {
+	deleteProperty,
+	getProperty,
+	hasProperty,
+	setProperty,
+} from '../lib/dot-prop';
+import envPaths from '../lib/env-paths';
+import {
+	concatUint8Arrays,
+	stringToUint8Array,
+	uint8ArrayToString,
+} from '../lib/uint8array-extras';
 import {
 	type BeforeEachMigrationCallback,
 	type Deserialize,
@@ -619,5 +619,5 @@ export default class Conf<T extends Record<string, any> = Record<string, unknown
 	}
 }
 
-export type { Options, Schema } from './types.js';
+export type { Options } from './types.js';
 

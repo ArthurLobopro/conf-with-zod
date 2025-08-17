@@ -8,7 +8,9 @@
 		],
 		"noPropertyAccessFromIndexSignature": false,
 		"isolatedModules": true,
-		"moduleResolution": "nodenext"
+		"module": "commonjs",
+		"moduleResolution": "node",
+		"esModuleInterop": true
 	},
 	"include": [
 		"source",

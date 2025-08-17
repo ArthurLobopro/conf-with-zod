@@ -1,4 +1,3 @@
-/* eslint-disable no-new, @typescript-eslint/no-empty-function, @typescript-eslint/naming-convention */
 import anyTest, { type TestFn } from 'ava';
 import { deleteSync } from 'del';
 import delay from 'delay';
@@ -8,7 +7,7 @@ import process from 'node:process';
 import { pEvent } from 'p-event';
 import { temporaryDirectory } from 'tempy';
 import z, { ZodError } from "zod";
-import Conf from '../source/index.js';
+import Conf from '../dist/index.cjs';
 
 const test = anyTest as TestFn<{
 	config: Conf;
